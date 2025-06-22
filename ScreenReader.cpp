@@ -180,7 +180,10 @@ std::wstring AskGemini(const std::wstring &imageUrl, const std::wstring &prompt,
         wanswer.resize(len);
         MultiByteToWideChar(CP_UTF8, 0, answer.c_str(), -1, &wanswer[0], len);
     } else {
-        wanswer = L"Gemini API returned an unexpected response.";
+        // If extraction fails, just speak the raw response
+        int len = MultiByteToWideChar(CP_UTF8, 0, response.c_str(), -1, NULL, 0);
+        wanswer.resize(len);
+        MultiByteToWideChar(CP_UTF8, 0, response.c_str(), -1, &wanswer[0], len);
     }
     WinHttpCloseHandle(hRequest);
     WinHttpCloseHandle(hConnect);
@@ -241,7 +244,7 @@ int wmain(int argc, wchar_t *argv[])
     if (keys.gemini_api_key.empty())
         return 1;
     InstallHook();
-    Speak(L"Screen Reader is running. Press right Alt to read the screen.");
+    Speak(L"Screen Reader is running. Press the tilda button to read the screen.");
     MSG msg;
     while (true) {
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -256,16 +259,11 @@ int wmain(int argc, wchar_t *argv[])
             std::vector<BYTE> imgData = ReadFileBytes(filename);
             std::string b64 = base64_encode(imgData);
             std::wstring b64w(b64.begin(), b64.end());
-            std::wstring prompt = L"Describe what is happening in this screenshot in the context of the game, give playable actions in a concise manner. Output answer with 'text': in the json ";
+            std::wstring prompt = L"Describe what is happening in this screenshot in the context of the game, give playable actions in a concise manner. Return in plain text no rich text";
             std::string raw_json;
             std::wstring answer = AskGemini(b64w, prompt, &raw_json);
             if (!answer.empty())
                 Speak(answer);
-            if (g_debug && !raw_json.empty()) {
-                std::ofstream dbg("gemini_debug.json");
-                dbg << raw_json;
-                dbg.close();
-            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

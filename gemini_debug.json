@@ -1,0 +1,32 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "The Knight, the player character, stands on a stone platform in a lush, overgrown area of Hallownest, likely Greenpath. The Knight has 6 health masks filled and an almost full Soul meter. The player currently holds 363 Geo. No immediate threats are visible.\n\n**Playable Actions:**\n*   Move (Left/Right)\n*   Jump\n*   Attack (Nail)\n*   Focus (Heal/Use Soul)\n*   Open Map/Inventory"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 284,
+    "candidatesTokenCount": 103,
+    "totalTokenCount": 1196,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 26
+      },
+      {
+        "modality": "IMAGE",
+        "tokenCount": 258
+      }
+    ],
+    "thoughtsTokenCount": 809
+  },
+  "modelVersion": "gemini-2.

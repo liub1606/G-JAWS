@@ -1,35 +1,31 @@
-// Minimal JSON parser for extracting Gemini answer
+// Improved Gemini answer extraction for plain JSON structure
+#include <regex>
 #include <string>
-#include <vector>
+#include <algorithm>
 
 std::string extract_gemini_answer(const std::string& json) {
-    // Look for "candidates":[{"content":{"parts":[{"text":"...
-    size_t cand = json.find("\"candidates\":");
-    if (cand == std::string::npos) return "";
-    size_t text = json.find("\"text\":\"", cand);
-    if (text == std::string::npos) return "";
-    size_t start = text + 8;
-    size_t end = start;
-    bool in_escape = false;
-    std::string result;
-    while (end < json.size()) {
-        char c = json[end];
-        if (!in_escape && c == '\\') {
-            in_escape = true;
-        } else if (!in_escape && c == '"') {
-            break;
-        } else {
-            if (in_escape) {
-                if (c == 'n') result += '\n';
-                else if (c == 't') result += '\t';
-                else if (c == 'r') result += '\r';
-                else result += c;
-                in_escape = false;
+    // Look for: "text":"..."
+    std::regex text_re("\"text\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+    std::smatch match;
+    if (std::regex_search(json, match, text_re)) {
+        std::string result = match[1].str();
+        // Unescape common JSON escape sequences
+        std::string unescaped;
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (result[i] == '\\' && i + 1 < result.size()) {
+                char next = result[i + 1];
+                if (next == 'n') { unescaped += '\n'; ++i; }
+                else if (next == 't') { unescaped += '\t'; ++i; }
+                else if (next == 'r') { unescaped += '\r'; ++i; }
+                else if (next == '"') { unescaped += '"'; ++i; }
+                else if (next == '\\') { unescaped += '\\'; ++i; }
+                else { unescaped += result[i]; }
             } else {
-                result += c;
+                unescaped += result[i];
             }
         }
-        ++end;
+        return unescaped;
     }
-    return result;
+    // Fallback: return empty string
+    return "";
 }
