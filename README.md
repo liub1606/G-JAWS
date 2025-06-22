@@ -45,8 +45,3 @@ ScreenReader is a C++ application for Windows that captures the screen, encodes 
 - Change the prompt in `ScreenReader.cpp` for different narration styles.
 - Adjust `extract_gemini_answer.h` for more advanced response parsing.
 
-## License
-MIT License (or specify your own)
-
----
-For questions or contributions, open an issue or pull request.
