@@ -12,6 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <mmsystem.h>
+#include <exception>
 #pragma comment(lib, "Gdiplus.lib")
 #pragma comment(lib, "Ole32.lib")
 #pragma comment(lib, "Winhttp.lib")
@@ -238,37 +239,46 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 int wmain(int argc, wchar_t *argv[])
 {
-    InitGDIPlus();  
-    ApiKeys keys = FetchApiKeys();
-    GEMINI_API_KEY = keys.gemini_api_key;
-    if (keys.gemini_api_key.empty())
-        return 1;
-    InstallHook();
-    Speak(L"Screen Reader is running. Press the tilda button to read the screen.");
-    MSG msg;
-    while (true) {
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+    try {
+        InitGDIPlus();  
+        ApiKeys keys = FetchApiKeys();
+        GEMINI_API_KEY = keys.gemini_api_key;
+        if (keys.gemini_api_key.empty())
+            throw std::runtime_error("Failed to fetch Gemini API key.");
+        InstallHook();
+        Speak(L"Screen Reader is running. Press the tilda button to read the screen.");
+        MSG msg;
+        while (true) {
+            while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            if (g_triggered) {
+                g_triggered = false;
+                const wchar_t *filename = L"screen.jpg";
+                if (!CaptureScreen(filename))
+                    continue;
+                std::vector<BYTE> imgData = ReadFileBytes(filename);
+                std::string b64 = base64_encode(imgData);
+                std::wstring b64w(b64.begin(), b64.end());
+                std::wstring prompt = L"Describe what is happening in this screenshot in the context of the game in about a sentence. Return in plain text no rich text";
+                std::string raw_json;
+                std::wstring answer = AskGemini(b64w, prompt, &raw_json);
+                if (!answer.empty())
+                    Speak(answer);
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
-        if (g_triggered) {
-            g_triggered = false;
-            const wchar_t *filename = L"screen.jpg";
-            if (!CaptureScreen(filename))
-                continue;
-            std::vector<BYTE> imgData = ReadFileBytes(filename);
-            std::string b64 = base64_encode(imgData);
-            std::wstring b64w(b64.begin(), b64.end());
-            std::wstring prompt = L"Describe what is happening in this screenshot in the context of the game, give playable actions in a concise manner. Return in plain text no rich text";
-            std::string raw_json;
-            std::wstring answer = AskGemini(b64w, prompt, &raw_json);
-            if (!answer.empty())
-                Speak(answer);
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        UninstallHook();
+        ShutdownGDIPlus();
+    } catch (const std::exception& ex) {
+        MessageBoxA(NULL, ex.what(), "ScreenReader Exception", MB_OK | MB_ICONERROR);
+        // Optionally, restart the loop or just exit
+        while (true) std::this_thread::sleep_for(std::chrono::seconds(60));
+    } catch (...) {
+        MessageBoxA(NULL, "Unknown error occurred.", "ScreenReader Exception", MB_OK | MB_ICONERROR);
+        while (true) std::this_thread::sleep_for(std::chrono::seconds(60));
     }
-    UninstallHook();
-    ShutdownGDIPlus();
     return 0;
 }
 static const char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

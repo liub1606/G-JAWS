@@ -1,0 +1,13 @@
+# Ignore sensitive and generated files
+ApiKeys.h
+backend/*.pyc
+backend/__pycache__/
+gemini_debug.json
+*.exe
+*.obj
+*.pdb
+*.log
+.env
+*.bak
+# VS Code settings
+.vscode/
